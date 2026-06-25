@@ -1,0 +1,88 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSINT Dashboard Engine</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+
+    <div class="dashboard-root">
+        <aside class="control-sidebar">
+            <div class="app-header">
+                <div class="pulse-indicator"></div>
+                <h2>Tagahanap ng Putangina</h2>
+            </div>
+            
+            <p class="app-description">Upload visual assets to map geographic nodes, coordinate footprints, and extract time signatures automatically.</p>
+            
+            <form method="POST" enctype="multipart/form-data" class="upload-form-wrapper">
+                {% csrf_token %}
+                <label class="drag-drop-zone">
+                    <span class="upload-glyph">⚡</span>
+                    <span id="uploadText">SELECT TARGET IMAGES</span>
+                    <input type="file" id="imageInput" name="uploaded_image" accept="image/*" required multiple>
+                </label>
+                <button type="submit" class="primary-submit-btn">ANALYZE IMAGES</button>
+            </form>
+        </aside>
+
+        <main class="viewport-canvas">
+            <div id="map"></div>
+
+            <div class="floating-telemetry-panel">
+                <div class="panel-header">
+                    <span>TELEMETRY METRICS</span>
+                    <span class="secure-badge">SECURE</span>
+                </div>
+                
+                <div class="panel-content scrollable">
+                    {% if image_nodes %}
+                        {% for img in image_nodes %}
+                            <div class="telemetry-item {% if img.status == 'Found' %}has-coordinates{% endif %}"
+                                 data-lat="{{ img.coordinates.lat|default:'' }}"
+                                 data-lon="{{ img.coordinates.lon|default:'' }}">
+                                
+                                <div class="item-meta-row">
+                                    <span class="img-filename" title="{{ img.name }}">{{ img.name }}</span>
+                                    <span class="status-badge {{ img.status|slugify }}">
+                                        <span class="status-dot"></span>
+                                        {{ img.status }}
+                                    </span>
+                                </div>
+                                
+                                <div class="item-details-grid">
+                                    <div class="detail-line"><span class="lbl">TIME:</span> <span class="val accent-blue">{{ img.timestamp }}</span></div>
+                                    <div class="detail-line"><span class="lbl">LAT:</span> <span class="val monospace-num">{% if img.coordinates %}{{ img.coordinates.lat|stringformat:".6f" }}{% else %}N/A{% endif %}</span></div>
+                                    <div class="detail-line"><span class="lbl">LON:</span> <span class="val monospace-num">{% if img.coordinates %}{{ img.coordinates.lon|stringformat:".6f" }}{% else %}N/A{% endif %}</span></div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="telemetry-node standby">
+                            <div class="data-row">
+                                <span class="label">SYSTEM BASE:</span>
+                                <span class="val">READY</span>
+                            </div>
+                            <p class="standby-text">Awaiting coordinate upload stream. Visual telemetry maps will render dynamically inside this module layer.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </main>
+    </div>
+
+    {{ image_nodes|json_script:"images-json" }}
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="{% static 'js/main.js' %}"></script>
+</body>
+</html>
